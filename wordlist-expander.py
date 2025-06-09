@@ -75,13 +75,9 @@ def generate_combinations_parts(pattern):
             end = pattern.index('}', i)
             nums = pattern[i+1:end].split(',')
             min_count = int(nums[0])
-            max_count = int(nums[1]) if len(nums) > 1 else min_count
-            # Modify the previous part to include repetition
+            max_count = int(nums[1]) if len(nums) > 1 else min_count            # Store quantifier info with the part instead of pre-expanding
             prev_part = parts.pop()
-            expanded = []
-            for n in range(min_count, max_count + 1):
-                expanded.extend([''.join(p) for p in itertools.product(prev_part, repeat=n)])
-            parts.append(expanded)
+            parts.append((prev_part, min_count, max_count))
             i = end + 1
         else:
             # Handle literal character
@@ -92,8 +88,30 @@ def generate_combinations_parts(pattern):
 def generate_combinations(pattern):
     """Generate combinations one at a time using yield"""
     parts = generate_combinations_parts(pattern)
-    for combo in itertools.product(*parts):
-        yield ''.join(combo)
+    
+    def expand_part(part):
+        """Helper function to handle both simple parts and quantifier tuples"""
+        if isinstance(part, tuple):
+            chars, min_count, max_count = part
+            # Generate one length at a time to avoid memory explosion
+            for n in range(min_count, max_count + 1):
+                for p in itertools.product(chars, repeat=n):
+                    yield ''.join(p)
+        else:
+            for char in part:
+                yield char
+    
+    # Generate one complete combination at a time
+    def recursive_combine(prefix, remaining_parts):
+        if not remaining_parts:
+            yield prefix
+            return
+            
+        current_part = remaining_parts[0]
+        for expanded in expand_part(current_part):
+            yield from recursive_combine(prefix + expanded, remaining_parts[1:])
+    
+    yield from recursive_combine("", parts)
 
 def load_wordlist(wordlist_path):
     """Load words from a wordlist file"""
