@@ -31,6 +31,17 @@ def get_char_class(pattern, i):
     non_word = sorted(list(set(all_chars) - set(word_chars)))
     non_whitespace = sorted(list(set(all_chars) - set(whitespace)))
 
+    # Special escape sequences
+    escape_sequences = {
+        'n': '\n',  # newline
+        't': '\t',  # tab
+        'r': '\r',  # carriage return
+        'f': '\f',  # form feed
+        'v': '\v',  # vertical tab
+        'b': '\b',  # backspace
+        'a': '\a',  # bell/alert
+    }
+
     char_class_map = {
         'w': word_chars,        # Word characters [A-Za-z0-9_]
         'd': digits,            # Digits [0-9]
@@ -46,7 +57,10 @@ def get_char_class(pattern, i):
     if next_char == '\\':
         # Double backslash should output a single backslash
         return ['\\'], 2
-    # For any other escaped character, just return the character itself without the backslash
+    if next_char in escape_sequences:
+        # Handle special escape sequences
+        return [escape_sequences[next_char]], 2
+    # For any other escaped character, just return the character itself
     return [next_char], 2
 
 def generate_combinations_parts(pattern):
