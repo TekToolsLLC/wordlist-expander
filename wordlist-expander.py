@@ -6,6 +6,8 @@ import itertools
 import string
 import argparse
 
+intlimit = 1000000  # Limit for the number of combinations to generate
+
 def expand_char_range(start, end):
     """Expand character ranges like A-Z, a-z, A-z"""
     return [chr(i) for i in range(ord(start), ord(end) + 1)]
@@ -65,6 +67,27 @@ def get_char_class(pattern, i):
 
 def generate_combinations_parts(pattern):
     """Generate the parts list for pattern combination"""
+    # First, process regex quantifiers that aren't escaped
+    processed_pattern = ""
+    i = 0
+    while i < len(pattern):
+        if i > 0 and pattern[i-1] != '\\':  # Check if not escaped
+            if pattern[i] == '+':
+                processed_pattern += f"{{1,{intlimit}}}"
+                i += 1
+                continue
+            elif pattern[i] == '*':
+                processed_pattern += f"{{0,{intlimit}}}"
+                i += 1
+                continue
+            elif pattern[i] == '?':
+                processed_pattern += "{0,1}"
+                i += 1
+                continue
+        processed_pattern += pattern[i]
+        i += 1
+    
+    pattern = processed_pattern
     parts = []
     i = 0
     while i < len(pattern):
