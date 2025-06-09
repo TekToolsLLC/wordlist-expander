@@ -55,12 +55,18 @@ def generate_combinations_parts(pattern):
         if char_class is not None:
             parts.append(char_class)
             i += advance
-        elif pattern[i] == '[':
-            # Handle character class
+        elif pattern[i] == '[':            # Handle character class
             end = pattern.index(']', i)
             chars = set()  # Use set to avoid duplicates
             j = i + 1
             while j < end:
+                if j + 1 < end and pattern[j] == '\\':
+                    # Handle special character classes inside brackets
+                    char_class, advance = get_char_class(pattern, j)
+                    if char_class is not None:
+                        chars.update(char_class)
+                        j += advance
+                        continue
                 if j + 2 < end and pattern[j+1] == '-':
                     # Handle ranges like A-Z, a-z, A-z
                     chars.update(expand_char_range(pattern[j], pattern[j+2]))
