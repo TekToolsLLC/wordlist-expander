@@ -43,7 +43,11 @@ def get_char_class(pattern, i):
     next_char = pattern[i + 1]
     if next_char in char_class_map:
         return char_class_map[next_char], 2
-    return ['\\' + next_char], 2
+    if next_char == '\\':
+        # Double backslash should output a single backslash
+        return ['\\'], 2
+    # For any other escaped character, just return the character itself without the backslash
+    return [next_char], 2
 
 def generate_combinations_parts(pattern):
     """Generate the parts list for pattern combination"""
