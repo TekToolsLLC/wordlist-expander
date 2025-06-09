@@ -170,13 +170,24 @@ def load_wordlist(wordlist_path):
         sys.exit(1)
 
 def process_pattern_with_wordlist(pattern, wordlist):
-    """Process a pattern containing /x placeholders using words from the wordlist"""
-    if '/x' not in pattern:
-        print("Error: When using --wordlist, the pattern must contain at least one /x", file=sys.stderr)
+    """Process a pattern containing \\x placeholders using words from the wordlist"""
+    if '\\x' not in pattern:
+        print("Error: When using --wordlist, the pattern must contain at least one \\x", file=sys.stderr)
         sys.exit(1)
 
-    # Split pattern into parts by /x
-    parts = pattern.split('/x')
+    # Split pattern by \x, but handle escaped backslashes
+    parts = []
+    current = ""
+    i = 0
+    while i < len(pattern):
+        if i + 1 < len(pattern) and pattern[i:i+2] == '\\x':
+            parts.append(current)
+            current = ""
+            i += 2
+        else:
+            current += pattern[i]
+            i += 1
+    parts.append(current)
     
     # Generate combinations one at a time
     for word_combo in itertools.product(wordlist, repeat=len(parts)-1):
@@ -188,18 +199,19 @@ def process_pattern_with_wordlist(pattern, wordlist):
 def main():
     parser = argparse.ArgumentParser(description='Generate all possible strings matching a regex pattern')
     parser.add_argument('pattern', help='The regex pattern to expand')
-    parser.add_argument('--wordlist', help='Path to a wordlist file for /x substitution')
+    parser.add_argument('--wordlist', help='Path to a wordlist file for \\x substitution')
     args = parser.parse_args()
 
     try:
-        # Validate the regex pattern first
-        re.compile(args.pattern)
-
         # Process the pattern and stream results
         if args.wordlist:
             wordlist = load_wordlist(args.wordlist)
+            # Escape \x in pattern before regex validation
+            validation_pattern = args.pattern.replace('\\x', 'X')  # temporary replacement for validation
+            re.compile(validation_pattern)  # validate the pattern
             generator = process_pattern_with_wordlist(args.pattern, wordlist)
         else:
+            re.compile(args.pattern)  # validate the pattern
             generator = generate_combinations(args.pattern)
 
         # Print results as they are generated
