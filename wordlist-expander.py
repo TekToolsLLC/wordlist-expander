@@ -160,11 +160,41 @@ def generate_combinations(pattern):
     
     yield from recursive_combine("", parts)
 
-def load_wordlist(wordlist_path):
-    """Load words from a wordlist file"""
+def get_capitalization_variants(line):
+    """Generate capitalization variants for a line of text"""
+    words = line.split()
+    variants = set()  # Use set to automatically handle duplicates
+    
+    # 1. Original string
+    variants.add(line)
+    
+    # 2. All lowercase
+    variants.add(line.lower())
+    
+    # 3. First letter capitalized (e.g., "test string" -> "Test string")
+    variants.add(line.capitalize())
+    
+    # 4. First letter of each word capitalized (e.g., "test string" -> "Test String")
+    variants.add(' '.join(word.capitalize() for word in words))
+    
+    # 5. All capital letters
+    variants.add(line.upper())
+    
+    # Convert back to list and sort for consistent output order
+    return sorted(variants)
+
+def load_wordlist(wordlist_path, capitalize=False):
+    """Load words from a wordlist file, with optional capitalization variants"""
     try:
         with open(wordlist_path, 'r') as f:
-            return [line.strip() for line in f if line.strip()]
+            lines = [line.strip() for line in f if line.strip()]
+            if capitalize:
+                # For each line, generate its capitalization variants
+                expanded_lines = []
+                for line in lines:
+                    expanded_lines.extend(get_capitalization_variants(line))
+                return expanded_lines
+            return lines
     except Exception as e:
         print(f"Error reading wordlist file: {e}", file=sys.stderr)
         sys.exit(1)
@@ -200,12 +230,17 @@ def main():
     parser = argparse.ArgumentParser(description='Generate all possible strings matching a regex pattern')
     parser.add_argument('pattern', help='The regex pattern to expand')
     parser.add_argument('--wordlist', help='Path to a wordlist file for \\x substitution')
+    parser.add_argument('-c', '--capitalize', action='store_true', 
+                       help='Generate capitalization variants for each wordlist line (only works with --wordlist)')
     args = parser.parse_args()
 
     try:
         # Process the pattern and stream results
         if args.wordlist:
-            wordlist = load_wordlist(args.wordlist)
+            if args.capitalize and '\\x' not in args.pattern:
+                print("Error: -c/--capitalize option requires \\x in the pattern", file=sys.stderr)
+                sys.exit(1)
+            wordlist = load_wordlist(args.wordlist, args.capitalize)
             # Escape \x in pattern before regex validation
             validation_pattern = args.pattern.replace('\\x', 'X')  # temporary replacement for validation
             re.compile(validation_pattern)  # validate the pattern
